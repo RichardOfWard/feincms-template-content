@@ -24,6 +24,11 @@ from testapp.models import (
     CreatedCustomContent,
 )
 from mock import Mock
+from django.contrib import admin
+from feincms.module.page.models import Page
+
+
+admin.autodiscover()
 
 #TODO:
 # test that **kwargs get passed around the methods properly
@@ -78,7 +83,7 @@ class TemplateContentTestCase(TestCase):
     def test_get_context_object_name(self):
         c = CreatedTestContent()
         self.assertEqual(c.get_context_object_name(), 'content')
-        mock_name= Mock()
+        mock_name = Mock()
         c.context_object_name = mock_name
         self.assertIs(c.get_context_object_name(), mock_name)
 
@@ -107,3 +112,13 @@ class TemplateContentTestCase(TestCase):
     def test_render(self):
         c = CreatedTestContent()
         self.assertEqual(c.render().strip(), 'test')
+
+    def test_admin_form_hidden_template_field(self):
+        inline_class = CreatedTestContent.feincms_item_editor_inline
+        inline = inline_class(Page, admin.site)
+        self.assertIn('template', inline.exclude)
+
+    def test_admin_form_template_field(self):
+        inline_class = CreatedCustomContent.feincms_item_editor_inline
+        inline = inline_class(Page, admin.site)
+        self.assertNotIn('template', inline.exclude)
