@@ -4,6 +4,8 @@ from django.template import Context, RequestContext
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 
+from .admin import BaseTemplateContentAdmin
+
 snake_case_regex = re.compile('((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))')
 
 
@@ -15,6 +17,8 @@ class TemplateContent(models.Model):
 
     context_object_name = "content"
     template_folder_name = None
+
+    feincms_item_editor_inline = None
 
     @classmethod
     def initialize_type(class_, **kwargs):
@@ -34,6 +38,12 @@ class TemplateContent(models.Model):
                 default=default,
             )
         )
+
+        if class_.feincms_item_editor_inline is None:
+            class TemplateContentAdmin(BaseTemplateContentAdmin):
+                model = class_
+
+            class_.feincms_item_editor_inline = TemplateContentAdmin
 
     @classmethod
     def _ensure_template_choices(class_, **kwargs):
