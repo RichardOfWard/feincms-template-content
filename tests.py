@@ -8,10 +8,15 @@ settings.configure(
         }
     },
     INSTALLED_APPS=(
+        'django.contrib.contenttypes',
+        'django.contrib.auth',
         'feincms',
         'feincms.module.page',
+        'feincms.module.medialibrary',
+        'feincms_template_content',
         'testapp',
-    )
+    ),
+    MEDIA_URL='/media-test-path/',
 )
 
 
@@ -22,10 +27,17 @@ from feincms_template_content.models import TemplateContent
 from testapp.models import (
     CreatedTestContent,
     CreatedCustomContent,
+    CreatedImageContent,
+    CreatedMediaLibraryImageContent,
 )
 from mock import Mock
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from feincms.module.page.models import Page
+from feincms.module.medialibrary.models import MediaFile
+
+from django.core.management import call_command
+call_command('syncdb', interactive=False)
 
 
 admin.autodiscover()
@@ -122,3 +134,57 @@ class TemplateContentTestCase(TestCase):
         inline_class = CreatedCustomContent.feincms_item_editor_inline
         inline = inline_class(Page, admin.site)
         self.assertNotIn('template', inline.exclude)
+
+
+class TestImageContent(TestCase):
+    def test_image_str_repr(self):
+        c = CreatedImageContent()
+        c.image = "test.png"
+        self.assertEqual(unicode(c), u"test.png")
+
+    def test_image_template(self):
+        c = CreatedImageContent()
+        c.image = "test.png"
+        self.assertEqual(c.render().strip(),
+                         '<img style="display:block" src="/media-test-path/test.png">')
+
+
+class TestMediaLibraryImageContent(TestCase):
+    def setUp(self):
+        self.page = Page.objects.create(title="Page")
+        self.content = CreatedMediaLibraryImageContent()
+        self.content.parent = self.page
+
+    def test_image(self):
+        self.content.image = MediaFile.objects.create(file="test.png", type="image")
+        self.content.clean()
+        self.content.save()
+
+    def test_non_image(self):
+        self.content.image = MediaFile.objects.create(file="test.pdf", type="pdf")
+        with self.assertRaises(ValidationError):
+            self.content.clean()
+
+    def test_str_rep(self):
+        self.content.image = MediaFile.objects.create(file="test.png", type="image")
+        self.assertEqual(unicode(self.content), u"test.png")
+
+    def test_image_template(self):
+        self.content.image = MediaFile.objects.create(file="test.png", type="image")
+        self.assertEqual(unicode(self.content), u"test.png")
+        self.assertEqual(self.content.render().strip(),
+                         '<img style="display:block" src="/media-test-path/test.png">')
+
+    def test_image_template_float_left(self):
+        self.content.image = MediaFile.objects.create(file="test.png", type="image")
+        self.content.template = "content/image/float_left.html"
+        self.assertEqual(unicode(self.content), u"test.png")
+        self.assertEqual(self.content.render().strip(),
+                         '<img style="display:block; float:left" src="/media-test-path/test.png">')
+
+    def test_image_template_float_right(self):
+        self.content.image = MediaFile.objects.create(file="test.png", type="image")
+        self.content.template = "content/image/float_right.html"
+        self.assertEqual(unicode(self.content), u"test.png")
+        self.assertEqual(self.content.render().strip(),
+                         '<img style="display:block; float:right" src="/media-test-path/test.png">')
