@@ -4,10 +4,12 @@ import feincms_template_content
 setup(
     name='FeinCMS-Template-Content',
     version=feincms_template_content.__version__,
-    packages=['feincms_template_content'],
+    packages=['feincms_template_content',
+              'feincms_template_content.content'],
     package_data={
         'feincms_template_content': [
             'templates/content/*html',
+            'templates/content/image/*html',
         ]
     },
     license='MIT License',
